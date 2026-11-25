@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "target": "custom",
+  "platform": "windows",
+  "arch": "x86_64",
+  "renderer": "vulkan",
+  "patch": "patch_current",
+  "build": 6985,
+  "source_revision": 11258601,
+  "toolchain": "src-A",
+  "exported_formats": [
+    "cs",
+    "hpp",
+    "json",
+    "rs",
+    "zig"
+  ],
+  "version_source": "version_file",
+  "capture_note": "snapshot of dw* offsets; field offsets (m_*) live in a separate client.dll.json produced by the same dumper run",
+  "removed_in_6985": [
+    "dwBuildNumber",
+    "dwSoundSystem_engineViewData",
+    "dwNetworkGameClient_highestEntityIndex",
+    "dwViewMatrix_static",
+    "cv.particle_fow",
+    "VMixEditTool001"
+  ]
+}

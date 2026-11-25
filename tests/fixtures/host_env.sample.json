@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "_what": "Фикстура среды хоста для сборки и CI: настоящих имён здесь нет (PRINCIPLES P14).",
+  "_rule": "Ключи совпадают со средой хоста, значения нейтральные: сборка и тесты не зависят от того, какой хост стоит на машине.",
+  "host": {
+    "id": "host"
+  },
+  "handles": {
+    "host_bin": "sample.bin",
+    "host_bin_linux": "sample.bin",
+    "version_file": "sample/ver.inf",
+    "patch_current": "patch_x",
+    "cv.camera_distance": "cv_a",
+    "cv.range_display": "cv_b",
+    "cv.particle_fow": "cv_c",
+    "cache_root": "/tmp/sample"
+  },
+  "sources": {
+    "src-A": {
+      "repo": "sample/toolkit",
+      "role": "фикстура внешнего инструмента"
+    }
+  }
+}

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libovr_core.a CMakeFiles/ovr_core.dir/key.cpp.o CMakeFiles/ovr_core.dir/vec.cpp.o
+/usr/bin/ranlib libovr_core.a

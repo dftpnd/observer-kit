@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/mgu/projects/observer-kit/build/cmake_install.cmake",
+		"/home/mgu/projects/observer-kit/build/src/core/cmake_install.cmake",
+		"/home/mgu/projects/observer-kit/build/tests/unit/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

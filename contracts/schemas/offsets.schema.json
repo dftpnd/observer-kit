@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ovr/contracts/schemas/offsets.schema.json",
+  "title": "Снапшот адресных смещений dw* по модулям: offsets.client-<build>.json",
+  "type": "object",
+  "required": ["schema_version"],
+  "minProperties": 2,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    }
+  },
+  "propertyNames": {
+    "pattern": "^(schema_version|[a-z0-9]+\\.dll)$"
+  },
+  "patternProperties": {
+    "^[a-z0-9]+\\.dll$": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647
+      }
+    }
+  },
+  "additionalProperties": false
+}

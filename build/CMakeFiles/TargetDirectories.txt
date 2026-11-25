@@ -1,0 +1,14 @@
+/home/mgu/projects/observer-kit/build/CMakeFiles/ovr_lib.dir
+/home/mgu/projects/observer-kit/build/CMakeFiles/ovr.dir
+/home/mgu/projects/observer-kit/build/CMakeFiles/test.dir
+/home/mgu/projects/observer-kit/build/CMakeFiles/edit_cache.dir
+/home/mgu/projects/observer-kit/build/CMakeFiles/rebuild_cache.dir
+/home/mgu/projects/observer-kit/build/src/core/CMakeFiles/ovr_core.dir
+/home/mgu/projects/observer-kit/build/src/core/CMakeFiles/test.dir
+/home/mgu/projects/observer-kit/build/src/core/CMakeFiles/edit_cache.dir
+/home/mgu/projects/observer-kit/build/src/core/CMakeFiles/rebuild_cache.dir
+/home/mgu/projects/observer-kit/build/tests/unit/CMakeFiles/ovr_smoke.dir
+/home/mgu/projects/observer-kit/build/tests/unit/CMakeFiles/ovr_test_core.dir
+/home/mgu/projects/observer-kit/build/tests/unit/CMakeFiles/test.dir
+/home/mgu/projects/observer-kit/build/tests/unit/CMakeFiles/edit_cache.dir
+/home/mgu/projects/observer-kit/build/tests/unit/CMakeFiles/rebuild_cache.dir

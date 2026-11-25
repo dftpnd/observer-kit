@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ovr/contracts/schemas/info.schema.json",
+  "title": "Метаданные снапшота: info.client-<build>.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "target",
+    "platform",
+    "arch",
+    "renderer",
+    "patch",
+    "build",
+    "source_revision",
+    "toolchain",
+    "version_source"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "target": {
+      "type": "string",
+      "const": "host"
+    },
+    "platform": {
+      "$ref": "#/$defs/identity"
+    },
+    "arch": {
+      "$ref": "#/$defs/identity"
+    },
+    "renderer": {
+      "$ref": "#/$defs/identity"
+    },
+    "patch": {
+      "$ref": "#/$defs/identity"
+    },
+    "build": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "toolchain": {
+      "$ref": "#/$defs/identity"
+    },
+    "version_source": {
+      "type": "string",
+      "enum": ["version_file", "server", "launcher_api"]
+    },
+    "exported_formats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "capture_note": {
+      "type": "string"
+    },
+    "not_established": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contradicted": {
+      "type": "object"
+    }
+  },
+  "patternProperties": {
+    "^removed_in_[0-9]+$": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    }
+  },
+  "propertyNames": {
+    "pattern": "^[a-z][a-z0-9_]*$"
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "identity": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+    }
+  }
+}

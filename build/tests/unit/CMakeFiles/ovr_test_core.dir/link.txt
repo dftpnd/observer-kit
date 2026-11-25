@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/ovr_test_core.dir/link.d CMakeFiles/ovr_test_core.dir/test_core.cpp.o -o ovr_test_core  ../../libovr_lib.a ../../src/core/libovr_core.a

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "client.dll": {
+    "dwEntityList": -1,
+    "dwGameEntitySystem": 108484944,
+    "dwGameEntitySystem_entityCount": 8384,
+    "dwGameRules": 104739104,
+    "dwGlobalVars": 97265048,
+    "dwViewRender": 104769304
+  },
+  "engine2.dll": {
+    "dwNetworkGameClient": 9499792,
+    "dwNetworkGameClient_clientTickCount": 920,
+    "dwNetworkGameClient_deltaTick": 588,
+    "dwNetworkGameClient_isBackgroundMap": 2888767,
+    "dwNetworkGameClient_localPlayer": 248,
+    "dwNetworkGameClient_maxClients": 576,
+    "dwNetworkGameClient_serverTickCount": 588,
+    "dwNetworkGameClient_signOnState": 560,
+    "dwWindowHeight": 9518012,
+    "dwWindowWidth": 9518008
+  },
+  "inputsystem.dll": {
+    "dwInputSystem": 290112
+  },
+  "soundsystem.dll": {
+    "dwSoundSystem": 6581456
+  }
+}

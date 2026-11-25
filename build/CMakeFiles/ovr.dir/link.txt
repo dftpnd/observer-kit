@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/ovr.dir/link.d CMakeFiles/ovr.dir/src/main.cpp.o -o ovr  libovr_lib.a src/core/libovr_core.a
