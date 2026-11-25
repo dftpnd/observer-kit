@@ -1,0 +1,12 @@
+{
+  "client_version": 0,
+  "raw": "synthetic-empty.bin",
+  "state": {
+    "tick_client": null,
+    "tick_server": null,
+    "sign_on_state": null,
+    "actors": [],
+    "agents": [],
+    "validity_bits": 0
+  }
+}

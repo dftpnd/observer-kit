@@ -1,0 +1,23 @@
+[
+  {
+    "module": "client.dll",
+    "base": "0x180000000",
+    "file": "minimal.bin",
+    "file_offset": 0,
+    "size": 4096
+  },
+  {
+    "module": "engine2.dll",
+    "base": "0x180800000",
+    "file": "minimal.bin",
+    "file_offset": 4096,
+    "size": 2048
+  },
+  {
+    "module": "inputsystem.dll",
+    "base": "0x180A00000",
+    "file": "minimal.bin",
+    "file_offset": 6144,
+    "size": 1024
+  }
+]

@@ -76,6 +76,11 @@ void check_vectors() {
     check(close(normalize(Vec3{3.0f, 0.0f, 0.0f}), Vec3{1.0f, 0.0f, 0.0f}));
     check(close(normalize(Vec2{0.0f, 5.0f}), Vec2{0.0f, 1.0f}));
 
+    check(close(normalize(Vec2{0x1p-100f, 0.0f}), Vec2{1.0f, 0.0f}));
+    check(close(normalize(Vec3{0.0f, 0.0f, 0x1p100f}), Vec3{0.0f, 0.0f, 1.0f}));
+    const float largest = 0x1.fffffep127f;
+    check(close(normalize(Vec2{largest, largest}), Vec2{std::sqrt(0.5f), std::sqrt(0.5f)}));
+
     const Vec3 zero_norm = normalize(Vec3{});
     check(close(zero_norm, Vec3{0.0f, 0.0f, 0.0f}));
     check(finite(zero_norm));
@@ -92,6 +97,9 @@ void check_lerp() {
     const float nan = std::nanf("");
     check(close(lerp(Vec2{1.0f, 2.0f}, Vec2{3.0f, 6.0f}, 0.5f), Vec2{2.0f, 4.0f}));
     check(close(lerp(Vec2{1.0f, 2.0f}, Vec2{3.0f, 6.0f}, nan), Vec2{1.0f, 2.0f}));
+    check(close(lerp(Vec2{nan, 1.0f}, Vec2{3.0f, 6.0f}, nan), Vec2{3.0f, 1.0f}));
+    const float largest = 0x1.fffffep127f;
+    check(close(lerp(Vec2{-largest, largest}, Vec2{largest, -largest}, 0.5f), Vec2{}));
     const Vec2 nan_a = lerp(Vec2{nan, 1.0f}, Vec2{3.0f, 6.0f}, 0.5f);
     check(finite(nan_a));
     const Vec2 nan_b = lerp(Vec2{1.0f, 2.0f}, Vec2{3.0f, nan}, 0.5f);
@@ -145,6 +153,9 @@ void check_time() {
     check(ms_to_frames(16.7, 60.0) == 2);
     check(ms_to_frames(1000.0, 60.0) == 60);
 
+    check(ms_to_frames(0x1p-1022, 0x1p-1022) == 1);
+    check(ms_to_frames(1.0e200, 1.0e200) == UINT32_MAX);
+
     const std::uint64_t first = now_ns();
     const std::uint64_t second = now_ns();
     check(second >= first);
@@ -153,6 +164,7 @@ void check_time() {
 void check_keys() {
     const std::optional<Key> insert = key_from_name("INSERT");
     check(insert.has_value());
+    check(static_cast<std::uint16_t>(insert.value_or(Key::unknown)) == 0x2d);
     check(insert.value_or(Key::unknown) == Key::insert);
     check(!key_from_name("insert").has_value());
     check(!key_from_name("nope").has_value());

@@ -21,6 +21,6 @@ inline std::uint32_t ms_to_frames(double ms, double hz) {
     if (!std::isfinite(frames) || frames > static_cast<double>(UINT32_MAX)) {
         return UINT32_MAX;
     }
-    return static_cast<std::uint32_t>(std::ceil(frames));   // вверх
+    return frames < 1.0 ? 1 : static_cast<std::uint32_t>(std::ceil(frames));
 }
 }

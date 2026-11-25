@@ -45,7 +45,8 @@
       "minimum": 0
     },
     "toolchain": {
-      "$ref": "#/$defs/identity"
+      "type": "string",
+      "pattern": "^([a-z0-9][a-z0-9_.-]*|src-[A-Z])$"
     },
     "version_source": {
       "type": "string",
@@ -87,7 +88,7 @@
   "$defs": {
     "identity": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$"
+      "pattern": "^[a-z0-9][a-z0-9_.-]*$"
     }
   }
 }

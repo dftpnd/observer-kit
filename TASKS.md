@@ -70,7 +70,8 @@ Milestone: M0. Зависимости: нет.
   - CMakeLists.txt — (project ovr, CXX_STANDARD 20, опция OVR_BUILD_TESTS; на каждый модуль и
     на каждую фичу строка `if(EXISTS "<dir>/CMakeLists.txt") add_subdirectory(<dir>)`, список
     фиксируется сейчас: core, offsets, memory/rpm_backend, memory/vm_readv_backend,
-    memory/fake_backend, state, render, overlay, input, config, convars, ipc и
+    memory/fake_backend, state, render, overlay, input, config, convars, ipc, tools/dumper,
+    src/app, tests/bench, src/offsets/sigscan и
     features/{vision,last_hit,timers,skeleton,snap_lines,fow_overlay,range_display,cooldowns,
     illusions,alerts,combo}. Больше этот файл никто не трогает (PRINCIPLES P5))
   - include/ovr/core/.gitkeep, include/ovr/offsets/.gitkeep, include/ovr/memory/.gitkeep,
@@ -218,7 +219,7 @@ Milestone: M0. Зависимости: T000.
   - info.schema.json: обязательные schema_version, target (const "host"), platform, arch, renderer,
       patch, build (integer >= 0), source_revision, toolchain, version_source
       (enum ["version_file","server","launcher_api"]); ключи только snake_case (в реальном снапшоте
-      ровно эти имена); значения-идентичности = ручки (pattern ^[a-z0-9][a-z0-9_.-]*$) либо числа
+      ровно эти имена); значения-идентичности = ручки (pattern ^[a-z0-9][a-z0-9_.-]*$) либо числа. Для toolchain допустима также ручка вида `src-A`.
   - removed_in_<build> / not_established / contradicted — опциональные object/array, тип фиксирован
   - scripts/check_contracts.py: режим `check <файл> <схема>` и режим `diff <файл_a> <файл_b>`
       (выводит добавленные/удалённые/изменённые символы и печатает `removed:` для удалённых);
@@ -266,7 +267,7 @@ Milestone: M0. Зависимости: T001.
 Контракт (из ARCHITECTURE.md:154, ARCHITECTURE.md:679 и ARCHITECTURE.md:787):
   namespace ovr::memory
     struct ReadResult { const std::uint8_t* data{}; std::uint32_t size{}; bool ok{}; };
-    struct ReadReq    { std::uintptr_t addr; void* dst; std::uint32_t size; };
+    struct ReadReq    { std::uintptr_t addr; void* dst; std::uint32_t size; ReadResult* result{}; };
     class IMemoryBackend {
     public:
       virtual ~IMemoryBackend() = default;
@@ -353,10 +354,10 @@ Milestone: M0. Зависимости: T001, T004.
   - Заголовки бэкенда создаёт T004: здесь только реализация и тесты, чужие директории не трогаем (P7).
   - Файл дампа читается один раз при `open()`; повторного `open()` внутри `read_batch()` нет (E7).
 DoD / тест:
-  1) 500 разных read_raw дают тот же результат, что и один read_batch из 500 ReadReq;
+  1) в пачке из 500 ReadReq первые kMaxReadRequests совпадают с read_raw, буферы хвоста сохраняют исходное значение;
   2) E7: чтение за концом карты -> ok=false, буфер не изменён (заполнить 0xAA и сравнить),
      ОС не трогается;
-  3) `module_base("inputsystem.dll")` и `module_base("nope.dll")` -> 0 и !=0 по карте;
+  3) `module_base("inputsystem.dll")` и `module_base("nope.dll")` -> база из карты и 0 соответственно;
   4) `set_fail_range` -> ok=false без исключений; ни одного вызова open() внутри read_batch;
   5) запись 4 байт и чтение их обратно даёт те же байты, `write_calls == 1`;
   6) запись за концом карты -> ok=false, соседние байты не изменены (заполнить 0xAA и сравнить);
@@ -399,8 +400,10 @@ Milestone: M1. Зависимости: T001, T002.
   - src/offsets/offset_registry.cpp — (чтение contracts/*.json, разбор, is_stale)
   - src/offsets/CMakeLists.txt — (цель ovr_offsets: линкуется только к ovr_core)
   - tests/unit/test_offset_registry.cpp — (тесты на JSON-фикстурах, хост не нужна)
-  - tests/fixtures/offsets/valid.json — (копия contracts/offsets.client-6985.json)
-  - tests/fixtures/offsets/stale.json — (тот же JSON, но build=6900)
+  - tests/fixtures/offsets/valid.json — (копия contracts/offsets.client-6985.json; тест кладёт
+    её в build/ под именем offsets.client-6985.json, иначе load_from не найдёт файл)
+  - tests/fixtures/offsets/stale.json — (тот же снапшот, но 6900: билд несёт только имя файла
+    offsets.client-6900.json, поля build в схемах смещений нет — он в info.client-<build>.json)
   - tests/fixtures/offsets/malformed.json — (битый JSON: обещанный ключ с текстом вместо числа)
   - tests/fixtures/offsets/empty.json — (пустой объект)
 Контракт (из ARCHITECTURE.md:175):
@@ -416,6 +419,9 @@ Milestone: M1. Зависимости: T001, T002.
       bool is_stale(int current_build) const;
     };
   Ключ lookup() — строка "<module>!<symbol>" ровно как в RESEARCH.md:27, регистр модуля как в JSON.
+  Deref выводится из уровней RESEARCH.md:127 (L1 -> Once; L2 по суффиксу "_xxx" и L3 -> None;
+  статические объекты и размеры окна §5 перечисляет явно). stride == 0: цепочек m_* в снапшоте
+  нет, они приходят с T011. Сам реестр семантику не выбирает (contracts/README.md:16).
   load_from(contracts_dir, build) берёт файл offsets.client-<build>.json из contracts_dir; бросать
   запрещено — при любой ошибке (нет файла, битый JSON, неизвестный ключ схемы) возвращается
   пустой реестр: build()==0, sha256() пустой, lookup()==nullopt на любое имя; причина — одна
@@ -471,11 +477,11 @@ Milestone: M1. Зависимости: T001, T003.
       std::optional<std::uintptr_t> rip_target(std::span<const std::byte> image,
                                                const Match&, std::size_t disp_offset,
                                                std::size_t instruction_length);
-  Pattern.text — «48 8B 05 ?? ?? ?? ??»: байты через пробел, `??` = любой байт, `?X` = старший
-  ниббл; разбор толерантный (повторные пробелы, регистр hex), невалидный шаблон => 0 совпадений
-  и одна строка в stderr. scan() возвращает ВСЕ совпадения по всем шаблонам (адрес = base + индекс).
-  rip_target() считает цель rip-относительного адреса: base + address + instruction_length
-  + int32 из disp_offset; выход за image => nullopt.
+  Pattern.text содержит пары hex-символов через пробел. В каждой позиции `?` допускает любой
+  ниббл: `?X` фиксирует младший, `X?` фиксирует старший, `??` допускает любой байт.
+  Повторные пробелы и регистр hex допустимы. Невалидный шаблон даёт 0 совпадений и одну строку
+  в stderr. Match.address — адрес байта в переданном образе. rip_target возвращает nullopt
+  при выходе за границы образа.
 Крайние случаи: E39, E40 (каталог ARCHITECTURE.md:999 §11).
 Ограничения:
   Вызывать scan() разрешено только из tools/dumper/** (T011); в src/state/**, src/features/**,
@@ -484,7 +490,7 @@ Milestone: M1. Зависимости: T001, T003.
 DoD / тест:
   1) образ 4 КБ с вписанным «48 8B 05 3A 12 00 00» → scan() даёт ровно 1 Match с ожидаемым адресом;
   2) шаблон с `??` в середине находит оба различающихся по этому байту вхождения (2 Match);
-  3) шаблон «48 ?? 8B» находит по старшему/младшему нибблу по правилу `?X`;
+  3) формы `?X` и `X?` проверяются отдельно на синтетических байтах;
   4) E40: rip_target() на известном шаблоне даёт ожидаемый адрес; disp_offset за концом образа → nullopt;
   5) E39: пустой image, пустой шаблон, мусор «zz zz» → пустой результат, без исключений;
   6) `grep -rn "sigscan" src/state src/features src/render include/ovr/state` → пусто;
@@ -727,7 +733,7 @@ Milestone: M2. Зависимости: T001, T002.
   объявления по секциям образца. Семантика: load() сначала применяет ВСЕ дефолты, затем парсит;
   любой сбой парсинга/типа => out == дефолты, error заполнена, возврат false; НЕИЗВЕСТНЫЙ ключ
   => ошибка загрузки (не игнор). validate() — единственное место диапазонов:
-  camera.custom_distance 900..2000, input.cast_delay_ms 0..200, convar cl_weather 0..10;
+  camera.custom_distance 900..2000, combo.cast_delay_ms 0..200, convar cl_weather 0..10;
   нарушение диапазона => false + текст ошибки с именем ключа. save() пишет валидный конфиг,
   который load() прочитает без ошибок (round-trip). Hot-reload: вызывающий код дёргает load()
   между кадрами; в самой загрузке мьютексов и блокировок быть не должно.
@@ -744,18 +750,18 @@ DoD / тест:
   1) good.json → load()==true, поля совпадают с RESEARCH.md:218 (сверяется поле за полем);
   2) bad_type.json, unknown_key.json, out_of_range.json → load()==false, error непустая,
      все поля out == дефолтам (не частичное состояние!);
-  3) round-trip: save() затем load() в тот же путь → Config побайтово равен (operator== в тесте);
+  3) round-trip: save() затем load() в тот же путь → все поля Config совпадают (operator== в тесте);
   4) validate() ловит custom_distance==2500, cast_delay_ms==250, cl_weather==11;
   5) round-trip клавиши: good.json с `"menu_hotkey": "MOUSE5"` -> load даёт соответствующий
      `core::Key`, save пишет то же имя; `"insert"` (нижний регистр) и `"nope"` -> load==false,
       все поля == дефолтам, в error имя ключа (E17);
   6) E18: конфиг подменён между кадрами: load() на файл, записанный наполовину (обрезанный
-     JSON) -> false, а `out` остаётся ровно прошлым снимком; полу-конфиг в кадр не попадает,
+     JSON) -> false, кандидат сбрасывается к дефолтам. Вызывающий заменяет активный снимок только при успехе,
      потому что перезагрузка происходит только между вызовами цикла;
   7) E19: файл конфига удалили после запуска: load() на несуществующий путь -> false и все
      поля == дефолтам; 100 кадров подряд с мёртвым путём -> не больше одной строки в stderr
      про этот файл (не по строке за кадр), наблюдатель не падает;
-  8) `python3 scripts/check_contracts.py config.schema.json` → exit 0;
+  8) `python3 scripts/check_contracts.py check tests/fixtures/config/good.json config.schema.json` → exit 0;
   9) `grep -rn "getenv\|_NSGet\|HKEY" src/config` → пусто;
   10) `cmake --build build && ctest --test-dir build -R config --output-on-failure`.
 Не трогать: include/ovr/input/**, src/input/** (это T019), contracts/** , scripts/check_contracts.py.
@@ -2564,3 +2570,26 @@ DoD / тест:
   P5 (guarded `add_subdirectory` из T000), P6 (ключи фич объявляет T021), P7 (Linux-бэкенд в своей
   директории), P8 (golden-фикстуры с `MANIFEST.sha256`) и P14 (настоящие имена хоста только через
   ручки) уже внесены в блоки; волн это не меняет.
+
+## Состояние рабочей копии после ревью 25 ноября 2026
+
+| Задачи | Состояние |
+| --- | --- |
+| T000, T001, T002, T003, T005, T010 | Реализации и регрессии проверены на Linux. T005 проверяет результат пакетного чтения по флагам результата и содержимому буферов. |
+| T004 | Для E6/E48 вызывающий может передать отдельный ReadResult на запрос. При успехе он получает указатель на dst, размер и ok=true, при отказе — пустой результат. |
+| T006, T006W | Мок обеих платформ: отказ attach, пустой результат чтения, ноль записанных байтов. TypedReader возвращает пустое значение. |
+| T007 | Типы состояния, биты достоверности и переиспользуемая арена. Число клиентов передаётся конструктору, append сообщает о переполнении. |
+| T008, T009 | Источник и парсер возвращают пустой кадр. Эталон synthetic-empty с SHA-256 проверяет этот контракт. Подтверждённых захватов сборки 6985 нет. |
+| T011 | CLI дампера работает как мок. В dry-run сообщает not-established, при попытке сбора возвращает код 1. |
+| T012, T013 | Работают очередь примитивов и проекция на CPU. Размер окна передаётся в View.width/height. Обратный луч поддерживает перспективную матрицу. |
+| T014, T015 | Вывод без окна. SHM возвращает отказ публикации/потребления. Бенч отдельно измеряет пустую сессию, заполнение арены и очередь команд для синтетических агентов. |
+| T016 | Реестр вызывает модули по имени, игнорирует дубликаты, изолирует исключения, учитывает общий выключатель. |
+| T017, T018, T020, T024, T025, T026, T027, T028, T029, T030, T031 | Один общий класс мока зарегистрирован для каждой из 11 фич. Пустой кадр даёт ноль примитивов, модель видимости сообщает об отсутствии данных. |
+| T019, T022 | Фабрики системного ввода недоступны, источник ввода возвращает false, применение настроек к хосту и восстановление ничего не записывают. |
+| T021 | Загрузка, атомарное сохранение и проверка полей конфигурации. Ключ enabled доступен во всех 14 секциях. Неподтверждённые диапазоны color/threshold остаются открытыми. |
+| T023, T032 | Проверки include, литералов, контрактов и графа задач работают локально. Проверка идентичности и получение новой версии — моки. CI и ежедневный dry-run подготовлены для GitHub Actions. |
+| T033 | CLI, проверка локального снапшота и перезагрузка конфига между кадрами работают. Цикл вызывает пустой источник, парсер, реестр фич и вывод без окна. По умолчанию один кадр. |
+
+Из корня проекта запусти `./build/ovr --once 3`. Для проверки локального контракта и конфига:
+`./build/ovr --build 6985 --config tests/fixtures/config/good.json --once 3`.
+Бенч доступен как `./build/tests/bench/ovr_bench_frame`.

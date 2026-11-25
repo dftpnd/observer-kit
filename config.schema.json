@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "overlay_enabled": {
+      "type": "boolean"
+    },
+    "menu_hotkey": {
+      "type": "string",
+      "enum": [
+        "INSERT",
+        "MOUSE5"
+      ]
+    },
+    "markers_enabled": {
+      "type": "boolean"
+    },
+    "marker_box_color": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "marker_distance_units": {
+      "type": "number"
+    },
+    "combo": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "target_lock_key": {
+          "type": "string",
+          "enum": [
+            "INSERT",
+            "MOUSE5"
+          ]
+        },
+        "cast_delay_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        }
+      },
+      "additionalProperties": false
+    },
+    "last_hit_helper": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "indicator_color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "show_deny_threshold": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "vision_tracker": {
+      "type": "object",
+      "properties": {
+        "show_enemy_cooldowns": {
+          "type": "boolean"
+        },
+        "beacon_timer_overlay": {
+          "type": "boolean"
+        },
+        "illusion_highlight": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "camera": {
+      "type": "object",
+      "properties": {
+        "custom_distance": {
+          "type": "integer",
+          "minimum": 900,
+          "maximum": 2000
+        },
+        "smooth_zoom": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cl_weather": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "markers": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "last_hit": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timers": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "skeleton": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "snap_lines": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "fow_overlay": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "range_display": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cooldowns": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "illusions": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "alerts": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

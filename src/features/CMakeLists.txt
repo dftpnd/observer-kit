@@ -1,0 +1,3 @@
+add_library(ovr_features STATIC feature_registry.cpp)
+target_link_libraries(ovr_features PUBLIC ovr_config ovr_headers)
+target_link_libraries(ovr_lib PUBLIC ovr_features)

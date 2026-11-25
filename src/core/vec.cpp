@@ -15,8 +15,16 @@ float blend(float a, float b, float t) {
     if (!std::isfinite(b)) {
         return a;
     }
-    const float result = a + (b - a) * t;
+    const float result = std::lerp(a, b, t);
     return std::isfinite(result) ? result : a;
+}
+
+double magnitude(Vec2 v) {
+    return std::hypot(static_cast<double>(v.x), static_cast<double>(v.y));
+}
+
+double magnitude(Vec3 v) {
+    return std::hypot(static_cast<double>(v.x), static_cast<double>(v.y), static_cast<double>(v.z));
 }
 
 }  // namespace
@@ -27,19 +35,19 @@ Vec2 operator*(Vec2 a, float k) { return {a.x * k, a.y * k}; }
 
 float dot(Vec2 a, Vec2 b) { return a.x * b.x + a.y * b.y; }
 float length_sq(Vec2 a) { return dot(a, a); }
-float length(Vec2 a) { return std::sqrt(dot(a, a)); }
+float length(Vec2 a) { return static_cast<float>(magnitude(a)); }
 
 Vec2 normalize(Vec2 a) {
-    const float len = length(a);
+    const double len = magnitude(a);
     if (!std::isfinite(len) || len == 0.0f) {
         return {};
     }
-    return {a.x / len, a.y / len};
+    return {static_cast<float>(a.x / len), static_cast<float>(a.y / len)};
 }
 
 Vec2 lerp(Vec2 a, Vec2 b, float t) {
     if (!std::isfinite(t)) {
-        return a;
+        t = 0.0f;
     }
     return {blend(a.x, b.x, t), blend(a.y, b.y, t)};
 }
@@ -50,14 +58,14 @@ Vec3 operator*(Vec3 a, float k) { return {a.x * k, a.y * k, a.z * k}; }
 
 float dot(Vec3 a, Vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 float length_sq(Vec3 a) { return dot(a, a); }
-float length(Vec3 a) { return std::sqrt(dot(a, a)); }
+float length(Vec3 a) { return static_cast<float>(magnitude(a)); }
 
 Vec3 normalize(Vec3 a) {
-    const float len = length(a);
+    const double len = magnitude(a);
     if (!std::isfinite(len) || len == 0.0f) {
         return {};
     }
-    return {a.x / len, a.y / len, a.z / len};
+    return {static_cast<float>(a.x / len), static_cast<float>(a.y / len), static_cast<float>(a.z / len)};
 }
 
 Mat4x4 operator*(const Mat4x4& a, const Mat4x4& b) {

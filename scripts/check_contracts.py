@@ -48,34 +48,48 @@ def rel(path):
         return str(path)
 
 
+def reject_constant(text):
+    raise ValueError(f"недопустимое число JSON: {text}")
+
+
+def unique_members(pairs):
+    obj = {}
+    for key, value in pairs:
+        if key in obj:
+            raise ValueError(f"ключ указан повторно: {key!r}")
+        obj[key] = value
+    return obj
+
+
 def load(path):
-    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    text = pathlib.Path(path).read_text(encoding="utf-8")
+    return json.loads(text, parse_constant=reject_constant, object_pairs_hook=unique_members)
 
 
 def pointer_lookup(root, ref):
+    if not isinstance(ref, str) or not ref.startswith("#/"):
+        raise ValueError(f"ожидалась локальная ссылка: {ref}")
     node = root
-    for raw in [part for part in ref.lstrip("#").split("/") if part]:
+    for raw in ref[2:].split("/"):
         part = raw.replace("~1", "/").replace("~0", "~")
-        if isinstance(node, dict) and part in node:
-            node = node[part]
-        else:
-            return {}
+        if not isinstance(node, dict) or part not in node:
+            raise ValueError(f"ссылка не найдена: {ref}")
+        node = node[part]
     return node
 
 
-def deref(root, node):
-    for _ in range(8):
-        if isinstance(node, dict) and "$ref" in node:
-            node = pointer_lookup(root, node["$ref"])
-            continue
-        return node
-    return {}
-
-
-def validate(value, schema, root, pointer, errors):
-    schema = deref(root, schema)
-    if not isinstance(schema, dict):
+def validate(value, schema, root, pointer, errors, refs=()):
+    if isinstance(schema, bool):
+        if not schema:
+            errors.append((pointer, "значение запрещено схемой"))
         return
+    if not isinstance(schema, dict):
+        raise ValueError("ожидалась схема")
+    if "$ref" in schema:
+        ref = schema["$ref"]
+        if ref in refs:
+            raise ValueError(f"циклическая ссылка: {ref}")
+        validate(value, pointer_lookup(root, ref), root, pointer, errors, (*refs, ref))
 
     want = schema.get("type")
     if want is not None:
@@ -89,7 +103,7 @@ def validate(value, schema, root, pointer, errors):
     if "enum" in schema and value not in schema["enum"]:
         errors.append((pointer, f"значение вне перечня {schema['enum']}"))
 
-    if isinstance(value, int) and not isinstance(value, bool):
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
         if "minimum" in schema and value < schema["minimum"]:
             errors.append((pointer, f"меньше {schema['minimum']}"))
         if "maximum" in schema and value > schema["maximum"]:
@@ -115,20 +129,20 @@ def validate(value, schema, root, pointer, errors):
         additional = schema.get("additionalProperties", True)
         for key, sub in value.items():
             if name_pattern and not re.search(name_pattern, key):
-                errors.append((pointer, f"имя ключа {key} не из схемы"))
+                errors.append((f"{pointer}/{key}", f"имя ключа {key} не из схемы"))
                 continue
             matched = False
             if key in props:
                 matched = True
                 validate(sub, props[key], root, f"{pointer}/{key}", errors)
             for raw, sub_schema in patterns:
-                if re.search(raw, key) and not matched:
+                if re.search(raw, key):
                     matched = True
                     validate(sub, sub_schema, root, f"{pointer}/{key}", errors)
             if matched:
                 continue
             if additional is False:
-                errors.append((pointer, f"ключ {key} не описан схемой"))
+                errors.append((f"{pointer}/{key}", f"ключ {key} не описан схемой"))
             elif isinstance(additional, dict):
                 validate(sub, additional, root, f"{pointer}/{key}", errors)
 
@@ -140,7 +154,7 @@ def validate(value, schema, root, pointer, errors):
             if len(set(dumped)) != len(dumped):
                 errors.append((pointer, "элементы не уникальны"))
         items = schema.get("items")
-        if isinstance(items, dict):
+        if isinstance(items, (dict, bool)):
             for index, item in enumerate(value):
                 validate(item, items, root, f"{pointer}/{index}", errors)
 
@@ -199,7 +213,8 @@ def extra_rules(data, errors):
             errors.append((f"/{left[0]}", f"алиасы разошлись: {left[1]} != {right[1]}"))
 
 
-def check_file(path, schema_path=None):
+def validate_file(path, schema_path=None, quiet=False):
+    """Валидация по схеме. quiet=True ничего не печатает, кроме ошибок (нужно для diff)."""
     path = pathlib.Path(path)
     if not path.is_file():
         not_established(rel(path), ["сам снапшот (запуск дампера, T011)",
@@ -207,7 +222,7 @@ def check_file(path, schema_path=None):
         return 2
     try:
         data = load(path)
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, RecursionError) as error:
         print(f"{rel(path)}:1: .: файл не разобран: {error}")
         return 1
     schema_path = pathlib.Path(schema_path) if schema_path else infer_schema(data)
@@ -216,20 +231,33 @@ def check_file(path, schema_path=None):
         return 2
     try:
         schema = load(schema_path)
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, RecursionError) as error:
         print(f"{rel(schema_path)}:1: .: схема не разобрана: {error}")
         return 1
 
+    return check_data(path, data, schema_path, schema, quiet)
+
+
+def check_data(path, data, schema_path, schema, quiet):
     errors = []
-    validate(data, schema, schema, "", errors)
-    if isinstance(data, dict) and any(key.endswith(".dll") for key in data):
+    try:
+        validate(data, schema, schema, "", errors)
+    except (ValueError, TypeError, AttributeError, re.error) as error:
+        print(f"{rel(schema_path)}:1: .: некорректная схема: {error}")
+        return 1
+    if not errors and schema_path.resolve() == OFFSETS_SCHEMA:
         extra_rules(data, errors)
     for pointer, message in errors:
         show(path, pointer, message)
     if errors:
         return 1
-    print(f"{rel(path)}: ok ({rel(schema_path)})")
+    if not quiet:
+        print(f"{rel(path)}: ok ({rel(schema_path)})")
     return 0
+
+
+def check_file(path, schema_path=None):
+    return validate_file(path, schema_path)
 
 
 def alias_twin(module, name):
@@ -247,35 +275,42 @@ def cmd_diff(left_text, right_text):
         if not path.is_file():
             not_established(rel(path), ["снапшот смещений (запуск дампера, T011)"])
             return 2
+    try:
+        schema = load(OFFSETS_SCHEMA)
+    except FileNotFoundError:
+        not_established(rel(OFFSETS_SCHEMA), ["схема контракта"])
+        return 2
+    except (OSError, ValueError, RecursionError) as error:
+        print(f"{rel(OFFSETS_SCHEMA)}:1: .: схема не разобрана: {error}")
+        return 1
     data = []
     for path in paths:
         try:
             payload = load(path)
-        except (OSError, ValueError) as error:
+        except (OSError, ValueError, RecursionError) as error:
             print(f"{rel(path)}:1: .: файл не разобран: {error}")
             return 1
+        rc = check_data(path, payload, OFFSETS_SCHEMA, schema, quiet=True)
+        if rc:
+            return rc
         data.append(payload)
-
-    if check_file(left_text) == 1 or check_file(right_text) == 1:
-        return 1
 
     before = {(module, name): value for module, name, value in offset_symbols(data[0])}
     after = {(module, name): value for module, name, value in offset_symbols(data[1])}
-    for key in sorted(set(before) - set(after)):
+    for key in sorted(before.keys() - after.keys()):
         twin = alias_twin(*key)
-        if twin is not None and after.get(twin) == before[key]:
-            print(f"ALIAS-OK {key[0]}!{key[1]} == {twin[0]}!{twin[1]}")
-        else:
+        if twin is None or after.get(twin) != before[key]:
             print(f"removed: {key[0]}!{key[1]}")
-    for key in sorted(set(after) - set(before)):
-        print(f"added: {key[0]}!{key[1]} = {after[key]}")
-    for key in sorted(set(after) & set(before)):
-        if after[key] == before[key]:
-            continue
+        elif twin in before:
+            print(f"ALIAS-OK {key[0]}!{key[1]} == {twin[0]}!{twin[1]}")
+    for key in sorted(after.keys() - before.keys()):
         twin = alias_twin(*key)
-        if twin is not None and after.get(twin) == before[key]:
+        if twin is not None and before.get(twin) == after[key]:
             print(f"ALIAS-OK {key[0]}!{key[1]} == {twin[0]}!{twin[1]}")
         else:
+            print(f"added: {key[0]}!{key[1]} = {after[key]}")
+    for key in sorted(after.keys() & before.keys()):
+        if after[key] != before[key]:
             print(f"changed: {key[0]}!{key[1]} {before[key]} -> {after[key]}")
     return 0
 
@@ -288,14 +323,18 @@ def cmd_manifest(manifest):
         return 2
     failures = 0
     listed = set()
-    for number, line in enumerate(manifest.read_text(encoding="utf-8").splitlines(), 1):
+    try:
+        lines = manifest.read_text(encoding="utf-8").splitlines()
+    except (OSError, ValueError, RecursionError) as error:
+        print(f"{rel(manifest)}:1: .: файл не прочитан: {error}")
+        return 1
+    for number, line in enumerate(lines, 1):
         digest, _, name = line.partition("  ")
         name = name.strip()
-        if not digest or not name:
+        if not re.fullmatch(r"[0-9a-fA-F]{64}", digest) or not name:
             print(f"{rel(manifest)}:{number}: .: строка не в формате <sha256>  <имя файла>")
             failures += 1
             continue
-        listed.add(pathlib.Path(name).name)
         target = manifest.parent / name
         if not target.is_file():
             target = ROOT / name
@@ -303,12 +342,22 @@ def cmd_manifest(manifest):
             print(f"{rel(manifest)}:{number}: {name}: файла нет в дереве")
             failures += 1
             continue
-        actual = hashlib.sha256(target.read_bytes()).hexdigest()
-        if actual != digest.strip():
+        if target.resolve() in listed:
+            print(f"{rel(manifest)}:{number}: {name}: файл указан повторно")
+            failures += 1
+            continue
+        listed.add(target.resolve())
+        try:
+            actual = hashlib.sha256(target.read_bytes()).hexdigest()
+        except OSError as error:
+            print(f"{rel(manifest)}:{number}: {name}: {error}")
+            failures += 1
+            continue
+        if actual != digest.lower():
             print(f"{rel(manifest)}:{number}: {name}: SHA-256 разошёлся")
             failures += 1
     for path in sorted((ROOT / "contracts").glob("*.json")):
-        if path.name not in listed:
+        if path.resolve() not in listed:
             print(f"{rel(manifest)}:1: {path.name}: файла нет в MANIFEST")
             failures += 1
     if failures:
@@ -318,9 +367,22 @@ def cmd_manifest(manifest):
 
 
 def main(argv):
-    if len(argv) == 3 and argv[0] == "diff":
+    if argv and argv[0] == "diff":
+        if len(argv) != 3:
+            print(__doc__)
+            return 2
         return cmd_diff(argv[1], argv[2])
+    if argv and argv[0] == "check":
+        if len(argv) == 2:
+            return check_file(argv[1])
+        if len(argv) == 3:
+            return check_file(argv[1], argv[2])
+        print(__doc__)
+        return 2
     if argv and argv[0] == "--manifest":
+        if len(argv) > 2:
+            print(__doc__)
+            return 2
         return cmd_manifest(argv[1] if len(argv) > 1 else DEFAULT_MANIFEST)
     if len(argv) == 1:
         return check_file(argv[0])

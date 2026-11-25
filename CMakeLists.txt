@@ -23,7 +23,10 @@ set(_ovr_gen "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen_ho
              "--out" "${OVR_HOST_ENV_HEADER}")
 if(_ovr_env)
   list(APPEND _ovr_gen "--env" "${_ovr_env}")
+  # Сменился файл среды -> configure обязан перечитать его, иначе заголовок устареет.
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_ovr_env}")
 endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen_host_env.py")
 execute_process(COMMAND ${_ovr_gen} RESULT_VARIABLE _ovr_gen_rc)
 if(NOT _ovr_gen_rc EQUAL 0)
   message(FATAL_ERROR "gen_host_env.py не смог написать host_env.hpp")
@@ -64,8 +67,17 @@ ovr_add_dir(src/render)
 ovr_add_dir(src/overlay)
 ovr_add_dir(src/input)
 ovr_add_dir(src/config)
+ovr_add_dir(src/features)
+ovr_add_dir(src/offline)
 ovr_add_dir(src/convars)
 ovr_add_dir(src/ipc)
+
+# Замороженный список T000 включает и цели вне слоёв: цель живёт внутри своего CMakeLists, а корень
+# только разрешает её собрать (PRINCIPLES P5). Цель `ovr` объявлена выше из src/main.cpp — задача
+# T033 дописывает в неё источники и ссылки, а не создаёт вторую цель с тем же именем.
+ovr_add_dir(src/offsets/sigscan)   # подректорий.offsets: цель T010, чтобы не трогать CMakeLists T003
+ovr_add_dir(tools/dumper)
+ovr_add_dir(src/app)
 
 ovr_add_dir(src/features/vision)
 ovr_add_dir(src/features/last_hit)
@@ -82,4 +94,5 @@ ovr_add_dir(src/features/combo)
 if(OVR_BUILD_TESTS)
   enable_testing()
   ovr_add_dir(tests/unit)
+  ovr_add_dir(tests/bench)
 endif()

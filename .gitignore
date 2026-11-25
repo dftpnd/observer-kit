@@ -1,0 +1,5 @@
+# Артефакты сборки: в дереве остаётся только build/.gitkeep (выход T000).
+# Сгенерированный build/generated/ovr/host_env.hpp содержит настоящие имена среды,
+# поэтому в git он не попадает (PRINCIPLES P14).
+build/*
+!build/.gitkeep

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libovr_lib.a
-/usr/bin/ranlib libovr_lib.a

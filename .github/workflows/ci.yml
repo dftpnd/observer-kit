@@ -1,0 +1,73 @@
+name: CI
+
+"on": [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: "1"
+      CL: /utf-8
+    steps:
+      - uses: actions/checkout@v7
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.autocrlf
+          GIT_CONFIG_VALUE_0: "false"
+        with:
+          persist-credentials: false
+
+      - name: Identify runner image
+        id: image
+        run: echo "version=${ImageVersion:?}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache CMake build
+        uses: actions/cache@v6
+        with:
+          path: |
+            build/ci
+            !build/ci/Testing
+          key: cmake-${{ runner.os }}-${{ runner.arch }}-${{ steps.image.outputs.version }}-${{ github.sha }}
+
+      - name: Configure
+        run: cmake -S . -B build/ci -DCMAKE_BUILD_TYPE=Release -DOVR_BUILD_TESTS=ON -DOVR_HOST_ENV=tests/fixtures/host_env.sample.json
+
+      - name: Build
+        run: cmake --build build/ci --config Release --parallel
+
+      - name: Test
+        id: tests
+        run: ctest --test-dir build/ci -C Release --no-tests=error --output-on-failure
+
+      - name: Validate contracts
+        run: |
+          for snapshot in contracts/info.client-*.json contracts/offsets.client-*.json; do
+            python scripts/check_contracts.py check "$snapshot" || exit 1
+          done
+
+      - name: Check task dependencies
+        run: python scripts/check_docs.py --selftest
+
+      - name: Check includes
+        run: python scripts/check_includes.py
+
+      - name: Check offset literals
+        run: python scripts/check_no_hardcoded_offsets.py
+
+      - name: Upload CTest log
+        if: always() && steps.tests.outcome != 'skipped'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ctest-${{ matrix.os }}-${{ github.run_attempt }}
+          path: build/ci/Testing/Temporary/LastTest.log
+          if-no-files-found: error

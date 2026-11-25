@@ -1,0 +1,6 @@
+{
+  "overlay_enabled": true,
+  "camera": {
+    "custom_distance": 2500
+  }
+}

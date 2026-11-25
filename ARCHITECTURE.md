@@ -156,7 +156,7 @@ std::uint32_t ms_to_frames(double ms, double hz);  // вверх; hz <= 0 => 0
 ```cpp
 namespace ovr::memory {
 struct ReadResult { const std::uint8_t* data; std::uint32_t size; bool ok; };
-struct ReadReq    { std::uintptr_t addr; void* dst; std::uint32_t size; };  // буфер у вызывающего
+struct ReadReq    { std::uintptr_t addr; void* dst; std::uint32_t size; ReadResult* result{}; };  // буфер у вызывающего
 class IMemoryBackend {
 public:
   virtual ~IMemoryBackend() = default;
@@ -269,7 +269,7 @@ struct View {
   core::Mat4x4 matrix;                 // row-major, из HostState.view_matrix
   core::Vec3 cam_origin;               // из HostState.camera_origin
   float fov_deg{}, aspect{}, znear{}, zfar{};
-  bool valid{};                        // false ⇒ любая проекция возвращает false
+  bool valid{}; std::uint32_t width{}, height{};  // размеры окна в пикселях
 };
 bool world_to_screen(const View&, core::Vec3 world, core::Vec2& out_screen);
 bool screen_to_world_ray(const View&, core::Vec2 screen, core::Vec3& out_dir);
@@ -638,7 +638,7 @@ cmake --build build && ctest --test-dir build --output-on-failure
 
 Хост внутри рабочей копии никогда не называется своим именем (P13, P14). Всё, что называет его
 по имени, — конфигурация, а не знание: реестр настоящих имён лежит в `HOST-ENV.json` **вне git**
-и читается по `OVR_HOST_ENV` (по умолчанию `../observer-notes/HOST-ENV.json`).
+и читается по `OVR_HOST_ENV`: путь задаёт человек или CI, в репозитории он не зашит.
 
 | Слой | Что содержит | Кто читает |
 |---|---|---|
@@ -863,7 +863,7 @@ std::optional<std::uintptr_t> rip_target(std::span<const std::byte> image, const
 }
 ```
 
-`Pattern.text` — «48 8B 05 ?? ?? ?? ??»: байты через пробел, `??` любой байт, `?X` старший ниббл;
+`Pattern.text` — «48 8B 05 ?? ?? ?? ??»: байты через пробел, `??` любой байт, `?X` фиксирует младший ниббл, `X?` фиксирует старший;
 разбор толерантный (повторные пробелы, регистр), невалидный шаблон ⇒ 0 совпадений и одна строка
 в stderr. `scan()` возвращает все совпадения; `rip_target()` — цель rip-относительного адреса,
 `nullopt` при выходе за образ. Вызывать сканер имеет право только дампер (T011): в `src/state/**`,

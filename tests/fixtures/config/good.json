@@ -1,0 +1,23 @@
+{
+  "overlay_enabled": true,
+  "menu_hotkey": "INSERT",
+  "combo": {
+    "enabled": true,
+    "target_lock_key": "MOUSE5",
+    "cast_delay_ms": 15
+  },
+  "last_hit_helper": {
+    "enabled": true,
+    "indicator_color": "#00FF00",
+    "show_deny_threshold": true
+  },
+  "vision_tracker": {
+    "show_enemy_cooldowns": true,
+    "beacon_timer_overlay": true,
+    "illusion_highlight": true
+  },
+  "camera": {
+    "custom_distance": 1400,
+    "smooth_zoom": true
+  }
+}

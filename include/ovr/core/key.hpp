@@ -7,7 +7,7 @@
 namespace ovr::core {
 enum class Key : std::uint16_t {
     unknown = 0 /* VK-коды Windows, коды Linux; MOUSE5 == 5 */,
-    insert = 29,
+    insert = 0x2d,
     mouse5 = 5,
 };
 
